@@ -96,28 +96,41 @@ async function saveMarkdown(url, markdown) {
         }
     }
 
-    console.log(`🔗 Found ${urls.length} URLs.`);
+    console.log(`🔗 Found ${urls.length} URLs. Processing in batches...`);
 
-    for (const url of urls) {
-        const safeName = url.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 100);
-        const filePath = path.join(OUTPUT_DIR, `${safeName}.md`);
+    const BATCH_SIZE = 10;
+    for (let i = 0; i < urls.length; i += BATCH_SIZE) {
+        const batch = urls.slice(i, i + BATCH_SIZE);
+        console.log(`📦 Processing batch ${i / BATCH_SIZE + 1}/${Math.ceil(urls.length / BATCH_SIZE)}`);
 
-        if (fs.existsSync(filePath)) {
-            console.log(`⏩ Skipping ${url} - markdown already exists`);
-            continue;
+        for (const url of batch) {
+            const safeName = url.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 100);
+            const filePath = path.join(OUTPUT_DIR, `${safeName}.md`);
+
+            if (fs.existsSync(filePath)) {
+                console.log(`⏩ Skipping ${url} - markdown already exists`);
+                continue;
+            }
+
+            console.log(`🚀 Crawling ${url}`);
+            const taskId = await crawlUrl(url);
+            if (!taskId) continue;
+
+            const result = await waitForTaskCompletion(taskId);
+            if (result && result.markdown) {
+                await saveMarkdown(url, result.markdown);
+            } else {
+                console.log(`❌ Failed to get markdown for ${url}`);
+            }
+
+            // Explicitly clear references to help garbage collection
+            if (global.gc) {
+                global.gc();
+            }
         }
 
-        console.log(`🚀 Crawling ${url}`);
-        const taskId = await crawlUrl(url);
-        if (!taskId) continue;
-
-        const result = await waitForTaskCompletion(taskId);
-        console.dir("Result: ", result)
-        if (result && result.markdown) {
-            await saveMarkdown(url, result.markdown);
-        } else {
-            console.log(`❌ Failed to get markdown for ${url}`);
-        }
+        // Clear batch references
+        batch.length = 0;
     }
 
     console.log("✅ All done.");
