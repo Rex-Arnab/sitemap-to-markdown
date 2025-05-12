@@ -1,0 +1,4 @@
+markdown/**
+node_modules/**
+.vscode/**
+*.lock
