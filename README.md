@@ -71,6 +71,11 @@ Edit `main.js` to customize:
 - Migrate content to static site generators
 - Archive website content
 
+## Problems
+[ ] The Longer it runs, the more memory it consumes. This is because the `urls` array keeps growing as it crawls more pages. To fix this, we can use a batch processing approach to limit the number of URLs stored in memory at any given time.
+
+[ ] The script may not handle all edge cases, such as redirects or non-HTML content types. You may need to add additional error handling and content type checks based on your specific use case.
+
 ## License
 
 MIT
